@@ -1,32 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>List Randomizer with TTS</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        .container {
-            margin-top: 20px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spoken Drill List — Non‑Repeating</title>
+  <style>
+    :root { --bg: #0b0f14; --card:#121821; --ink:#e6eef7; --muted:#9bb0c9; --accent:#6ea8fe; --good:#70e000; --warn:#ffd166; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+           color: var(--ink); background: radial-gradient(1200px 800px at 20% -10%, #112, transparent), var(--bg); }
+    .wrap { max-width: 960px; margin: 32px auto; padding: 24px; }
+    .grid { display: grid; gap: 16px; }
+    @media (min-width: 880px) { .grid-cols { grid-template-columns: 1.2fr 1fr; } }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent), var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; box-shadow: 0 12px 36px rgba(0,0,0,.35); }
+    .card h1 { margin: 0; font-size: 22px; letter-spacing: .3px; }
+    .card .body { padding: 18px; }
+    textarea, input, select, button { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); background: #0e141d; color: var(--ink); padding: 12px 14px; font-size: 14px; }
+    textarea { min-height: 220px; resize: vertical; line-height: 1.35; }
+    label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+    .row { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .btn { cursor: pointer; font-weight: 700; letter-spacing:.02em; border-radius: 12px; }
+    .btn.start { background: linear-gradient(180deg, rgba(112,224,0,.25), rgba(112,224,0,.05)); border:1px solid rgba(112,224,0,.45); }
+    .btn.stop { background: linear-gradient(180deg, rgba(255,84,84,.25), rgba(255,84,84,.05)); border:1px solid rgba(255,84,84,.45); }
+    .k { padding: 2px 8px; border-radius: 8px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
+    .muted { color: var(--muted); font-size: 13px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:#0c131c; }
+    .list { display:flex; flex-wrap:wrap; gap:8px; }
+    .footer { opacity:.75; font-size:12px; margin-top: 10px; }
+    .preset-row { display:grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+    .toggle { display:flex; align-items:center; gap:8px; }
+  </style>
 </head>
 <body>
-    <h1>List Randomizer with TTS</h1>
-    <div class="container">
-        <p>Welcome! This is a simple HTML page ready for your list randomizer and text-to-speech code.</p>
-    </div>
-    
-    <script>
-        // Add your JavaScript code here
-    </script>
+  <div class="wrap grid grid-cols">
+    <section class="card">
+      <div class="body">
+        <h1>Spoken Drill List — Non‑Repeating</h1>
+        <p class="muted">Paste or import your list. The app will speak each item once per cycle in random order, wait the chosen delay, then continue. Voices are pre‑loaded to avoid clipping.</p>
+
+        <div class="grid" style="margin-top:12px; gap:14px;">
+          <div class="preset-row">
+            <label>
+              <span>Default sets</span>
+              <select id="preset"></select>
+            </label>
+            <label class="toggle"><input id="appendPreset" type="checkbox" style="width:auto; margin:0;" /> Append (instead of replace)</label>
+            <button id="applyPreset" class="btn">Add preset</button>
+          </div>
+
+          <label>
+            <span>List items <span class="muted">(comma or one per line)</span></span>
+            <textarea id="items"></textarea>
+          </label>
+
+          <div class="row">
+            <label>
+              <span>Delay between calls (seconds)</span>
+              <input id="delay" type="number" min="0" step="0.05" value="2.0" />
+            </label>
+            <label>
+              <span>Voice</span>
+              <select id="voice"></select>
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              <span>Rate <span class="muted">(0.5–2.0)</span></span>
+              <input id="rate" type="number" min="0.5" max="2" step="0.05" value="1.0" />
+            </label>
+            <label>
+              <span>Pitch <span class="muted">(0–2)</span></span>
+              <input id="pitch" type="number" min="0" max="2" step="0.1" value="1.0" />
+            </label>
+          </div>
+
+          <div class="row">
+            <div class="pill"><input id="reshuffle" type="checkbox" checked style="width:auto; margin:0;"/> <label for="reshuffle" style="margin:0;">Shuffle each new cycle</label></div>
+            <div class="pill"><input id="speakBeep" type="checkbox" style="width:auto; margin:0;"/> <label for="speakBeep" style="margin:0;">Beep between items</label></div>
+          </div>
+
+          <div class="row">
+            <button id="start" class="btn start">▶ Start</button>
+            <button id="stop" class="btn stop" disabled>■ Stop</button>
+          </div>
+
+          <div class="list" id="status"></div>
+          <div class="footer muted">Tip: Press <span class="k">S</span> to Start/Stop. Your settings auto‑save in this browser.</div>
+
+          <div class="row">
+            <label>
+              <span>Import from .txt/.csv</span>
+              <input id="file" type="file" accept=".txt,.csv" />
+            </label>
+            <button id="export" class="btn">⤓ Export items (.txt)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <audio id="beep" preload="auto">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAZGF0YQAAAAAA" type="audio/wav">
+  </audio>
+
+  <script>
+    const els = {
+      items: document.getElementById('items'),
+      delay: document.getElementById('delay'),
+      rate: document.getElementById('rate'),
+      pitch: document.getElementById('pitch'),
+      voiceSel: document.getElementById('voice'),
+      start: document.getElementById('start'),
+      stop: document.getElementById('stop'),
+      status: document.getElementById('status'),
+      file: document.getElementById('file'),
+      exportBtn: document.getElementById('export'),
+      reshuffle: document.getElementById('reshuffle'),
+      beep: document.getElementById('beep'),
+      speakBeep: document.getElementById('speakBeep'),
+      presetSel: document.getElementById('preset'),
+      applyPreset: document.getElementById('applyPreset'),
+      appendPreset: document.getElementById('appendPreset'),
+    };
+
+    const PRESETS = {
+      'GS — Ground Shots': ['Hookshot','Powershot','Preflip'],
+      'DT — Direction Targets': ['Top','Left','Right','Mid','Bottom','Corner Wall','Triple Touch','Curve'],
+      'AFS — Advanced Freestyle': ['Stall Multiflip','Preflip Multiflip','Boomer Backflip Flip Reset','Backboard Squish','Turtle Air Dribble'],
+      'DB — Dribbles (basic)': ['Bounce Dribble','Push Dribble','Carry Dribble'],
+      'ADB — Dribbles (alt)': ['Backwards Dribble','Turtle Dribble','360 Dribble'],
+      'FX — Far/Near Post (forward/backflip/side/angles)': ['Forward Far Post','Forward Near Post','Backflip Far Post','Backflip Near Post','Sideways Far Post','Sideways Near Post','45 Far Post','45 Near Post','90 Far Post','90 Near Post'],
+      'AFX — Advanced Shots (variants)': ['180 Far Post','180 Near Post','Musty Far Post','Musty Near Post','Breezi Far Post','Breezi Near Post','Tornado Far Post','Tornado Near Post','Turtle Near Post','Turtle Far Post'],
+      'RE — Recoveries': ['Forward Wave-dash','Half-flip','Powerslide'],
+      'WD/HF — Directions': ['Left Side','Right Side','Diagonal Left','Diagonal Right','Backwards','Forwards'],
+      'ARE — Advanced Recoveries': ['Wall Push','Goal Wall Push','Side Wall Curve-dash','Back Wall Curve-dash','Ceiling Curve-dash','Goal Curve-dash','Bunny Hop','Rapid-Chain Wave-dash'],
+      'AC — Aerial Car sides': ['Left Side','Right Side','Under-side','Top-side'],
+      'AA — Aerial Arsenal': ['Air Dribble','Flip Reset','Ceiling Shot','Stall Multi-Flip Reset','Preflip Multi-Flip Reset','Freestyle'],
+    };
+
+    const DEFAULT_LIST = PRESETS['FX — Far/Near Post (forward/backflip/side/angles)'];
+
+    // build preset select
+    (function buildPresets(){
+      for (const key of Object.keys(PRESETS)) {
+        const opt = document.createElement('option');
+        opt.value = key; opt.textContent = key; els.presetSel.appendChild(opt);
+      }
+      els.presetSel.value = 'FX — Far/Near Post (forward/backflip/side/angles)';
+    })();
+
+    // --- Persistence ---
+    const save = () => {
+      localStorage.setItem('spokenList.settings', JSON.stringify({
+        items: els.items.value,
+        delay: els.delay.value,
+        rate: els.rate.value,
+        pitch: els.pitch.value,
+        voice: els.voiceSel.value,
+        reshuffle: els.reshuffle.checked,
+        speakBeep: els.speakBeep.checked,
+      }));
+    };
+    const load = () => {
+      const raw = localStorage.getItem('spokenList.settings');
+      if (raw) {
+        const s = JSON.parse(raw);
+        els.items.value = s.items || DEFAULT_LIST.join('\n');
+        els.delay.value = s.delay || '2.0';
+        els.rate.value = s.rate || '1.0';
+        els.pitch.value = s.pitch || '1.0';
+        els.reshuffle.checked = !!s.reshuffle;
+        els.speakBeep.checked = !!s.speakBeep;
+        queuedVoice = s.voice || '';
+      } else {
+        els.items.value = DEFAULT_LIST.join('\n');
+      }
+    };
+
+    // --- Voices ---
+    let voices = [];
+    let queuedVoice = '';
+
+    function loadVoices() {
+      voices = window.speechSynthesis.getVoices();
+      els.voiceSel.innerHTML = '';
+      voices.forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} — ${v.lang}${v.default ? ' (default)' : ''}`;
+        els.voiceSel.appendChild(opt);
+      });
+      if (queuedVoice) els.voiceSel.value = queuedVoice;
+    }
+
+    function waitForVoices(timeout = 1500) {
+      return new Promise((resolve) => {
+        const ready = () => { if (window.speechSynthesis.getVoices().length) { resolve(); return true; } return false; };
+        if (ready()) return; // already loaded
+        const id = setInterval(() => { if (ready()) { clearInterval(id); clearTimeout(tid); } }, 100);
+        const tid = setTimeout(() => { clearInterval(id); resolve(); }, timeout);
+        window.speechSynthesis.onvoiceschanged = () => { if (ready()) { clearInterval(id); clearTimeout(tid); resolve(); } };
+      });
+    }
+
+    // --- Logic ---
+    let running = false, timer = null, bag = [];
+
+    function parseItems() {
+      const raw = els.items.value.trim();
+      const parts = raw.includes('\n') ? raw.split(/\n+/) : raw.split(/,\s*/);
+      return parts.map(s => s.trim()).filter(Boolean);
+    }
+
+    function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+
+    function refillBag() {
+      const items = parseItems();
+      bag = items.slice();
+      if (els.reshuffle.checked) shuffle(bag);
+      renderStatus();
+    }
+
+    function renderStatus(current) {
+      els.status.innerHTML = '';
+      const items = parseItems();
+      const left = new Set(bag);
+      items.forEach(item => {
+        const pill = document.createElement('div');
+        pill.className = 'pill';
+        pill.style.opacity = left.has(item) ? '1' : '.4';
+        pill.textContent = item + (current === item ? ' •' : '');
+        els.status.appendChild(pill);
+      });
+    }
+
+    function speak(text) {
+      return new Promise(resolve => {
+        const u = new SpeechSynthesisUtterance(text);
+        const match = voices.find(v => v.name === els.voiceSel.value);
+        if (match) u.voice = match;
+        u.rate = parseFloat(els.rate.value) || 1.0;
+        u.pitch = parseFloat(els.pitch.value) || 1.0;
+        u.onend = () => { resolve(); };
+        // Do not cancel between items; that causes clipping on some engines
+        try { window.speechSynthesis.resume(); } catch(e){}
+        // Tiny defer avoids overlaps if engine is still finishing
+        if (!window.speechSynthesis.speaking) {
+          window.speechSynthesis.speak(u);
+        } else {
+          setTimeout(() => window.speechSynthesis.speak(u), 50);
+        }
+      });
+    }
+
+    async function step() {
+      if (!running) return;
+      if (bag.length === 0) refillBag();
+      const item = bag.pop();
+      renderStatus(item);
+      if (els.speakBeep.checked) { try { els.beep.currentTime = 0; els.beep.play(); } catch(e){} }
+      // Small pause to ensure clean start on some engines
+      await new Promise(r => setTimeout(r, 50));
+      await speak(item);
+      const delayMs = Math.max(0, (parseFloat(els.delay.value) || 0) * 1000);
+      timer = setTimeout(step, delayMs);
+    }
+
+    function start() {
+      if (running) return;
+      if (!parseItems().length) return alert('Please enter at least one item.');
+      // One-time cancel to clear stale queue
+      try { window.speechSynthesis.cancel(); } catch(e){}
+      save(); refillBag(); running = true; els.start.disabled = true; els.stop.disabled = false; step();
+    }
+
+    function stop() {
+      running = false; if (timer) clearTimeout(timer);
+      try { window.speechSynthesis.cancel(); } catch(e){}
+      els.start.disabled = false; els.stop.disabled = true; renderStatus();
+    }
+
+    // --- Events ---
+    els.start.addEventListener('click', start);
+    els.stop.addEventListener('click', stop);
+    els.items.addEventListener('input', () => { save(); });
+    [els.delay, els.rate, els.pitch, els.reshuffle, els.speakBeep].forEach(el => el.addEventListener('change', save));
+    els.voiceSel.addEventListener('change', save);
+
+    els.applyPreset.addEventListener('click', () => {
+      const key = els.presetSel.value;
+      const list = PRESETS[key] || [];
+      const current = parseItems();
+      const next = els.appendPreset.checked ? current.concat(list) : list;
+      // de-dupe while preserving order
+      const seen = new Set();
+      const dedup = next.filter(x => x && !seen.has(x) && (seen.add(x), true));
+      els.items.value = dedup.join('\n');
+      save(); renderStatus();
+    });
+
+    document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 's') { running ? stop() : start(); } });
+
+    els.file.addEventListener('change', async (e) => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const text = await f.text();
+      els.items.value = text.trim(); save(); renderStatus();
+    });
+
+    els.exportBtn.addEventListener('click', () => {
+      const blob = new Blob([els.items.value], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: 'drill-list.txt' });
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    // Init
+    (async function init(){
+      load();
+      els.start.disabled = true; // guard until voices ready
+      await waitForVoices();
+      loadVoices();
+      els.start.disabled = false;
+      renderStatus();
+    })();
+  </script>
 </body>
 </html>
